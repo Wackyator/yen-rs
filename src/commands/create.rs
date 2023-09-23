@@ -12,7 +12,7 @@ pub struct Args {
     version: f32,
 }
 
-pub fn execute(args: Args) -> miette::Result<()> {
+pub async fn execute(args: Args) -> miette::Result<()> {
     let _ = args;
     Ok(())
 }

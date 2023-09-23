@@ -6,6 +6,7 @@ use log::LevelFilter;
 use commands::{create, list};
 
 mod commands;
+mod github;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -21,20 +22,23 @@ struct Args {
 
 #[derive(Parser, Debug)]
 enum Command {
-    #[clap(alias = "l")]
+    // #[clap(alias = "l")]
     List(list::Args),
-    #[clap(alias = "c")]
+    // #[clap(alias = "c")]
     Create(create::Args),
 }
 
 fn main() {
-    if let Err(err) = execute(Args::parse()) {
-        eprintln!("{err:?}");
-        std::process::exit(1);
-    }
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    rt.block_on(async {
+        if let Err(err) = execute(Args::parse()).await {
+            eprintln!("{err:?}");
+            std::process::exit(1);
+        }
+    })
 }
 
-fn execute(args: Args) -> miette::Result<()> {
+async fn execute(args: Args) -> miette::Result<()> {
     let level = match args.verbose.log_level_filter() {
         clap_verbosity_flag::LevelFilter::Off => LevelFilter::Off,
         clap_verbosity_flag::LevelFilter::Error => LevelFilter::Error,
@@ -50,7 +54,7 @@ fn execute(args: Args) -> miette::Result<()> {
         .init();
 
     match args.command {
-        Command::Create(args) => create::execute(args),
-        Command::List(args) => list::execute(args),
+        Command::Create(args) => create::execute(args).await,
+        Command::List(args) => list::execute(args).await,
     }
 }
