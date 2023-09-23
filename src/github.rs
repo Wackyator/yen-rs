@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, str::FromStr};
+use std::{collections::BTreeMap, fmt::Display, str::FromStr};
 
 use detect_targets::detect_targets;
 use lazy_static::lazy_static;
@@ -45,8 +45,8 @@ impl FromStr for Version {
     type Err = miette::ErrReport;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let v = s
-            .split(".")
-            .map(|s| Ok(s.parse::<u32>().into_diagnostic()?))
+            .split('.')
+            .map(|s| s.parse::<u32>().into_diagnostic())
             .collect::<Result<Vec<_>, miette::ErrReport>>()?;
 
         Ok(Self {
@@ -54,6 +54,12 @@ impl FromStr for Version {
             minor: v[1],
             patch: v[2],
         })
+    }
+}
+
+impl Display for Version {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}.{}.{}", self.major, self.minor, self.patch)
     }
 }
 
@@ -102,23 +108,21 @@ async fn get_latest_python_release() -> miette::Result<Vec<String>> {
 }
 
 pub async fn list_pythons() -> miette::Result<BTreeMap<Version, String>> {
-    let _machine_suffix = MachineSuffix::default().await?.get_suffix();
+    let machine_suffix = MachineSuffix::default().await?.get_suffix();
 
     let releases = get_latest_python_release().await?;
 
     let mut map = BTreeMap::new();
 
     for release in releases {
-        let x = RE.captures(&release);
-        if let Some(v) = x {
-            let version = Version::from_str(&v[1])?;
-            map.insert(version, release);
-        } else {
-            continue;
+        if release.ends_with(&machine_suffix) {
+            let x = RE.captures(&release);
+            if let Some(v) = x {
+                let version = Version::from_str(&v[1])?;
+                map.insert(version, release);
+            }
         }
     }
-
-    // TODO: filter by machine_suffix in release path
 
     Ok(map)
 }

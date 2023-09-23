@@ -8,6 +8,7 @@ use commands::{create, list};
 mod commands;
 mod github;
 
+/// Create python virtual environments with minimal effort.
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 #[clap(arg_required_else_help = true)]
