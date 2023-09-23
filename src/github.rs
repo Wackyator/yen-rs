@@ -1,18 +1,10 @@
 use std::{collections::BTreeMap, fmt::Display, str::FromStr};
 
 use detect_targets::detect_targets;
-use lazy_static::lazy_static;
 use miette::IntoDiagnostic;
-use regex::Regex;
-use reqwest::header::USER_AGENT;
 use serde::Deserialize;
 
-const GITHUB_API_URL: &str =
-    "https://api.github.com/repos/indygreg/python-build-standalone/releases/latest";
-
-lazy_static! {
-    static ref RE: Regex = Regex::new(r"cpython-(\d+\.\d+.\d+)").expect("Unable to create regex!");
-}
+use crate::{GITHUB_API_URL, RE, YEN_CLIENT};
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct GithubResp {
@@ -95,9 +87,8 @@ impl MachineSuffix {
 }
 
 async fn get_latest_python_release() -> miette::Result<Vec<String>> {
-    Ok(reqwest::Client::new()
-        .get(GITHUB_API_URL)
-        .header(USER_AGENT, "yen client")
+    Ok(YEN_CLIENT
+        .get(*GITHUB_API_URL)
         .send()
         .await
         .into_diagnostic()?
@@ -116,7 +107,7 @@ pub async fn list_pythons() -> miette::Result<BTreeMap<Version, String>> {
 
     for release in releases {
         if release.ends_with(&machine_suffix) {
-            let x = RE.captures(&release);
+            let x = (*RE).captures(&release);
             if let Some(v) = x {
                 let version = Version::from_str(&v[1])?;
                 map.insert(version, release);
@@ -125,4 +116,20 @@ pub async fn list_pythons() -> miette::Result<BTreeMap<Version, String>> {
     }
 
     Ok(map)
+}
+
+pub async fn resolve_python_version(request_version: Version) -> miette::Result<(Version, String)> {
+    let pythons = list_pythons().await?;
+
+    for (version, release_link) in pythons {
+        if version == request_version {
+            return Ok((version, release_link));
+        }
+    }
+
+    miette::bail!(
+        "{} {}",
+        "Error: requested Python version is not available.",
+        "Use 'yen list' to get list of available Pythons.",
+    );
 }
