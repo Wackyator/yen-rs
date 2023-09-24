@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use clap::Parser;
 use clap_verbosity_flag::Verbosity;
+use detect_targets::detect_targets;
 use env_logger::{Builder, WriteStyle};
 
 use lazy_static::lazy_static;
@@ -71,6 +72,7 @@ async fn execute(args: Args) -> miette::Result<()> {
         .write_style(WriteStyle::Always)
         .init();
 
+    println!("{:?}", detect_targets().await);
     match args.command {
         Command::Create(args) => create::execute(args).await,
         Command::List(args) => list::execute(args).await,
