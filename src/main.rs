@@ -3,7 +3,6 @@ use std::path::PathBuf;
 use clap::Parser;
 use clap_verbosity_flag::Verbosity;
 use env_logger::{Builder, WriteStyle};
-use home::home_dir;
 use lazy_static::lazy_static;
 use log::LevelFilter;
 
@@ -11,19 +10,17 @@ use commands::{create, list};
 use regex::Regex;
 use reqwest::Client;
 
-use crate::utils::yen_client;
+use crate::utils::{home_dir, yen_client};
 
 mod commands;
 mod github;
 mod utils;
 
-// const PYTHON_INSTALLS_PATH: PathBuf = "~/.yen_pythons".into();
-
 lazy_static! {
     static ref GITHUB_API_URL: &'static str =
         "https://api.github.com/repos/indygreg/python-build-standalone/releases/latest";
     static ref RE: Regex = Regex::new(r"cpython-(\d+\.\d+.\d+)").expect("Unable to create regex!");
-    static ref PYTHON_INSTALLS_PATH: PathBuf = home_dir().unwrap().join(".yen_pythons");
+    static ref PYTHON_INSTALLS_PATH: PathBuf = home_dir().join(".yen_pythons");
     static ref YEN_CLIENT: Client = yen_client();
 }
 

@@ -20,34 +20,28 @@ use crate::{
 
 pub async fn ensure_python(version: Version) -> miette::Result<(Version, PathBuf)> {
     if !PYTHON_INSTALLS_PATH.exists() {
-        log::debug!("creating python installs dir");
-        let s = PYTHON_INSTALLS_PATH.to_str();
-        log::debug!("{s:?}");
         fs::create_dir(&*PYTHON_INSTALLS_PATH).into_diagnostic()?;
-        log::debug!("created python installs dir");
     }
 
     let (version, link) = resolve_python_version(version).await?;
-    log::debug!("{version}, {link}");
 
     let download_dir = PYTHON_INSTALLS_PATH.join(version.to_string());
-    log::debug!("{}", download_dir.to_string_lossy());
 
     let python_bin_path = download_dir.join("python/bin/python3");
-    log::debug!("{}", python_bin_path.to_string_lossy());
+
+    if !download_dir.exists() {
+        fs::create_dir_all(&download_dir).into_diagnostic()?;
+    }
 
     if python_bin_path.exists() {
         return Ok((version, python_bin_path));
     }
 
-    log::debug!("creating python bin");
-    fs::create_dir_all(&python_bin_path).into_diagnostic()?;
+    let downloaded_file = download(link.as_str(), &download_dir).await?;
 
-    let downloaded_file =
-        File::open(download(link.as_str(), &download_dir).await?).into_diagnostic()?;
+    let file = File::open(downloaded_file).into_diagnostic()?;
 
-    log::debug!("Decoding tar");
-    Archive::new(GzDecoder::new(downloaded_file))
+    Archive::new(GzDecoder::new(file))
         .unpack(download_dir)
         .into_diagnostic()?;
 
@@ -88,7 +82,6 @@ pub async fn download(link: &str, path: &Path) -> miette::Result<PathBuf> {
             .last()
             .ok_or(miette::miette!("Unable to file name from link"))?,
     );
-    log::debug!("{}", filepath.to_string_lossy());
 
     let resource = YEN_CLIENT.get(link).send().await.into_diagnostic()?;
     let total_size = resource.content_length().ok_or(miette::miette!(
@@ -102,12 +95,9 @@ pub async fn download(link: &str, path: &Path) -> miette::Result<PathBuf> {
                 "{msg}\n{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({bytes_per_sec}, {eta})"
             )
             .into_diagnostic()?
-            .progress_chars("#>-")
     );
-    pb.set_message(format!("Downloading {link}"));
 
-    log::debug!("creating file");
-    let mut file = File::create(filepath).into_diagnostic()?;
+    let mut file = File::create(&filepath).into_diagnostic()?;
     let mut downloaded: u64 = 0;
     let mut stream = resource.bytes_stream();
 
@@ -116,12 +106,12 @@ pub async fn download(link: &str, path: &Path) -> miette::Result<PathBuf> {
         file.write_all(&chunk).into_diagnostic()?;
         let new = min(downloaded + (chunk.len() as u64), total_size);
         downloaded = new;
-        pb.set_position(new);
+        pb.inc(new);
     }
 
-    pb.finish_with_message(format!("Downloaded {link}"));
+    pb.finish();
 
-    Ok(path.join("shit"))
+    Ok(filepath)
 }
 
 pub fn yen_client() -> reqwest::Client {
@@ -142,4 +132,9 @@ pub fn yen_client() -> reqwest::Client {
             std::process::exit(1);
         }
     }
+}
+
+pub fn home_dir() -> PathBuf {
+    #[allow(deprecated)]
+    std::env::home_dir().expect("Unable to get home dir")
 }
