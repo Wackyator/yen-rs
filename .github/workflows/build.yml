@@ -1,5 +1,8 @@
 name: Build Static Binary
 
+permissions:
+  contents: write
+
 on:
   push:
     tags:
