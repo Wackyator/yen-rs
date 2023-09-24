@@ -146,8 +146,8 @@ pub fn detect_target() -> miette::Result<String> {
     {
         let gnu = is_glibc()?;
         if gnu {
-            // #[cfg(target_arch = "x86_64")]
-            // return Ok("x86_64-unknown-linux-gnu".into());
+            #[cfg(target_arch = "x86_64")]
+            return Ok("x86_64-unknown-linux-gnu".into());
 
             #[cfg(target_arch = "aarch64")]
             return Ok("aarch64-unknown-linux-gnu".into());
@@ -169,6 +169,7 @@ pub fn detect_target() -> miette::Result<String> {
     miette::bail!("{}-{} is not supported", consts::OS, consts::ARCH);
 }
 
+#[allow(dead_code)]
 pub fn is_glibc() -> miette::Result<bool> {
     let p = PathBuf::from("/usr/bin/ldd");
     let content = read_to_string(&p)?;
@@ -180,6 +181,7 @@ pub fn is_glibc() -> miette::Result<bool> {
     }
 }
 
+#[allow(dead_code)]
 pub fn read_to_string<P>(path: P) -> miette::Result<String>
 where
     P: AsRef<Path>,
