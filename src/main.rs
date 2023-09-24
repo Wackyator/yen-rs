@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use clap::Parser;
 use clap_verbosity_flag::Verbosity;
 use env_logger::{Builder, WriteStyle};
+
 use lazy_static::lazy_static;
 use log::LevelFilter;
 

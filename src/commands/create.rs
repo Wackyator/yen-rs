@@ -22,5 +22,6 @@ pub struct Args {
 
 pub async fn execute(args: Args) -> miette::Result<()> {
     let (python_version, python_bin_path) = ensure_python(args.python).await?;
-    create_env(python_version, python_bin_path, args.path).await
+    create_env(python_version, python_bin_path, args.path).await?;
+    Ok(())
 }

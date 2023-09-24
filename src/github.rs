@@ -29,8 +29,8 @@ impl From<GithubResp> for Vec<String> {
 #[derive(Eq, PartialEq, Clone, Debug, Hash, PartialOrd, Ord)]
 pub struct Version {
     major: u32,
-    minor: u32,
-    patch: u32,
+    minor: Option<u32>,
+    patch: Option<u32>,
 }
 
 impl FromStr for Version {
@@ -41,17 +41,42 @@ impl FromStr for Version {
             .map(|s| s.parse::<u32>().into_diagnostic())
             .collect::<Result<Vec<_>, miette::ErrReport>>()?;
 
-        Ok(Self {
-            major: v[0],
-            minor: v[1],
-            patch: v[2],
-        })
+        match v.len() {
+            1 => Ok(Self {
+                major: v[0],
+                minor: None,
+                patch: None,
+            }),
+            2 => Ok(Self {
+                major: v[0],
+                minor: Some(v[1]),
+                patch: None,
+            }),
+            x if x > 2 => Ok(Self {
+                major: v[0],
+                minor: Some(v[1]),
+                patch: Some(v[2]),
+            }),
+            _ => miette::bail!("Unable to construct version"),
+        }
     }
 }
 
 impl Display for Version {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}.{}.{}", self.major, self.minor, self.patch)
+        match *self {
+            Self {
+                major,
+                minor,
+                patch,
+            } if minor.is_some() && patch.is_some() => {
+                write!(f, "{}.{}.{}", major, minor.unwrap(), patch.unwrap())
+            }
+            Self { major, minor, .. } if minor.is_some() => {
+                write!(f, "{}.{}", major, minor.unwrap())
+            }
+            _ => write!(f, "{}", self.major),
+        }
     }
 }
 
@@ -121,9 +146,20 @@ pub async fn list_pythons() -> miette::Result<BTreeMap<Version, String>> {
 pub async fn resolve_python_version(request_version: Version) -> miette::Result<(Version, String)> {
     let pythons = list_pythons().await?;
 
-    for (version, release_link) in pythons {
-        if version == request_version {
-            return Ok((version, release_link));
+    for version in pythons.keys().rev() {
+        if version
+            .to_string()
+            .starts_with(&request_version.to_string())
+        {
+            let release_link = pythons
+                .get(version)
+                .ok_or(miette::miette!(
+                    "Error: unable to find release link for {}",
+                    version
+                ))?
+                .to_owned();
+
+            return Ok((version.to_owned(), release_link));
         }
     }
 
