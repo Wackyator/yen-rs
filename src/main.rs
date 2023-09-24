@@ -2,7 +2,6 @@ use std::path::PathBuf;
 
 use clap::Parser;
 use clap_verbosity_flag::Verbosity;
-use detect_targets::detect_targets;
 use env_logger::{Builder, WriteStyle};
 
 use lazy_static::lazy_static;
@@ -22,6 +21,7 @@ lazy_static! {
     static ref GITHUB_API_URL: &'static str =
         "https://api.github.com/repos/indygreg/python-build-standalone/releases/latest";
     static ref RE: Regex = Regex::new(r"cpython-(\d+\.\d+.\d+)").expect("Unable to create regex!");
+    static ref MUSL: Regex = Regex::new(r"GNU|GLIBC|glibc").expect("Unable to create regex!");
     static ref PYTHON_INSTALLS_PATH: PathBuf = home_dir().join(".yen_pythons");
     static ref YEN_CLIENT: Client = yen_client();
 }
@@ -72,7 +72,6 @@ async fn execute(args: Args) -> miette::Result<()> {
         .write_style(WriteStyle::Always)
         .init();
 
-    println!("{:?}", detect_targets().await);
     match args.command {
         Command::Create(args) => create::execute(args).await,
         Command::List(args) => list::execute(args).await,
