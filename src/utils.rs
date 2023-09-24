@@ -169,7 +169,7 @@ pub fn detect_target() -> miette::Result<String> {
     miette::bail!("{}-{} is not supported", consts::OS, consts::ARCH);
 }
 
-#[allow(dead_code)]
+#[cfg(target_os = "linux")]
 pub fn is_glibc() -> miette::Result<bool> {
     let p = PathBuf::from("/usr/bin/ldd");
     let content = read_to_string(&p)?;
@@ -181,7 +181,7 @@ pub fn is_glibc() -> miette::Result<bool> {
     }
 }
 
-#[allow(dead_code)]
+#[cfg(target_os = "linux")]
 pub fn read_to_string<P>(path: P) -> miette::Result<String>
 where
     P: AsRef<Path>,
