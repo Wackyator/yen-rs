@@ -152,9 +152,6 @@ pub fn detect_target() -> miette::Result<String> {
         } else {
             #[cfg(target_arch = "x86_64")]
             return Ok("x86_64-unknown-linux-musl".into());
-
-            #[cfg(target_arch = "aarch64")]
-            return Ok("aarch64-unknown-linux-musl".into());
         }
     }
 
