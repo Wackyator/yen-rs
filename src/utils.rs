@@ -2,7 +2,7 @@ use std::{
     cmp::min,
     env::consts,
     fs::{self, File},
-    io::{Read, Write},
+    io::Write,
     path::{Path, PathBuf},
     process::Command,
 };
@@ -16,8 +16,14 @@ use tar::Archive;
 
 use crate::{
     github::{resolve_python_version, Version},
-    MUSL, PYTHON_INSTALLS_PATH, YEN_CLIENT,
+    PYTHON_INSTALLS_PATH, YEN_CLIENT,
 };
+
+#[cfg(target_os = "linux")]
+use crate::MUSL;
+
+#[cfg(target_os = "linux")]
+use std::io::Read;
 
 pub async fn ensure_python(version: Version) -> miette::Result<(Version, PathBuf)> {
     if !PYTHON_INSTALLS_PATH.exists() {
