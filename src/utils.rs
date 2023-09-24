@@ -1,5 +1,6 @@
 use std::{
     cmp::min,
+    env::consts,
     fs::{self, File},
     io::{Read, Write},
     path::{Path, PathBuf},
@@ -139,13 +140,14 @@ pub fn home_dir() -> PathBuf {
     std::env::home_dir().expect("Unable to get home dir")
 }
 
+#[allow(unreachable_code)]
 pub fn detect_target() -> miette::Result<String> {
     #[cfg(target_os = "linux")]
     {
         let gnu = is_glibc()?;
         if gnu {
-            #[cfg(target_arch = "x86_64")]
-            return Ok("x86_64-unknown-linux-gnu".into());
+            // #[cfg(target_arch = "x86_64")]
+            // return Ok("x86_64-unknown-linux-gnu".into());
 
             #[cfg(target_arch = "aarch64")]
             return Ok("aarch64-unknown-linux-gnu".into());
@@ -163,6 +165,8 @@ pub fn detect_target() -> miette::Result<String> {
         #[cfg(target_arch = "aarch64")]
         return Ok("aarch64-apple-darwin".into());
     }
+
+    miette::bail!("{}-{} is not supported", consts::OS, consts::ARCH);
 }
 
 pub fn is_glibc() -> miette::Result<bool> {
